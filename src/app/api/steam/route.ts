@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server';
+import { throttle } from '../../../lib/utils';
 
-const url = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/';
-const key = process.env.NEXT_PUBLIC_STEAM_API_KEY;
-
-let lastRequestTime = 0;
-const requestDelay = 1000; // 1 second delay between requests
+const STEAM_URL = 'https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/';
+const KEY = process.env.NEXT_PUBLIC_STEAM_API_KEY;
 
 async function fetchPlayerData(id: string) {
-    // throttle 1 sec
-    const currentTime = Date.now();
-    if (currentTime - lastRequestTime < requestDelay) {
-        await new Promise(resolve => setTimeout(resolve, requestDelay - (currentTime - lastRequestTime)));
-    }
-
-    const response = await fetch(`${url}?key=${key}&steamids=${id}`);
-    lastRequestTime = Date.now(); // Update the last request time
+    const response = await fetch(`${STEAM_URL}?key=${KEY}&steamids=${id}`);
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -27,6 +18,7 @@ async function fetchPlayerData(id: string) {
 }
 
 export async function GET(request: Request) {
+    await throttle();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

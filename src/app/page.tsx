@@ -1,13 +1,15 @@
 'use client'
 
 import { useEffect, useRef, useState } from "react";
-import { usePlayerStore } from "@/store/playerStore";
+import { usePlayerStore, type Game } from "@/store/playerStore";
 import { VipedCard } from "../components/card";
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button";
+import { useStatStore } from "@/store/statStore";
 
 export default function Home() {
-  const { id, setPlayer, setId, setGames } = usePlayerStore();
+  const { id, setPlayer, setId, setGames, setLoading } = usePlayerStore();
+  const { setGameTotal } = useStatStore();
   const [inputValue, setInputValue] = useState(''); // Local state to hold the input value
 
   useEffect(() => {
@@ -45,11 +47,26 @@ export default function Home() {
       const gamesData = await gamesResponse.json();
       console.dir(gamesData); // Log the games data
 
-      if (gamesResponse.ok) {
-        // Assuming gamesData.response.games is the array of games
-        setGames(gamesData.response.games); // Set the games in the store
+      if (gamesResponse.ok && gamesData.response) {
+        setGameTotal(gamesData.response.game_count);
+        let curatedGameList: Game[] = [];
+        gamesData.response.games.map((g: Game) => {
+          if (g.playtime_forever > 2) {
+            const obj: Game = {
+              appid: g.appid,
+              has_community_visible_stats: g.has_community_visible_stats,
+              has_leaderboards: g.has_leaderboards,
+              img_icon_url: g.img_icon_url,
+              name: g.name,
+              playtime_forever: g.playtime_forever,
+              rtime_last_played: g.rtime_last_played
+            };
+            curatedGameList.push(obj);
+          }
+        });
+        setGames(curatedGameList); // Set the games with >2h playtime in the store
       } else {
-        console.error('Error fetching games:', gamesData.error);
+        console.error('Error fetching games:', gamesData.error || 'No response data');
       }
     };
 
